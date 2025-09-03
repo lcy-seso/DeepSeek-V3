@@ -30,11 +30,14 @@ def convert_state_dict(tilert_state_dict: dict) -> dict:
         r"layers\.(\d+)\.ffn\.routed_gate\.norm_weight": r"layers.\1.ffn_norm.weight",  # noqa: E501
         # MLP weight
         r"layers\.(\d+)\.ffn\.norm_up_gate.w1.weight": r"layers.\1.ffn.w1.weight",  # noqa: E501
+        r"layers\.(\d+)\.ffn\.down.w2.weight": r"layers.\1.ffn.w2.weight",  # noqa: E501
         r"layers\.(\d+)\.ffn\.norm_up_gate.w3.weight": r"layers.\1.ffn.w3.weight",  # noqa: E501
         r"layers\.(\d+)\.ffn\.norm_up_gate.w1.scale": r"layers.\1.ffn.w1.scale",  # noqa: E501
+        r"layers\.(\d+)\.ffn\.down.w2.scale": r"layers.\1.ffn.w2.scale",  # noqa: E501
         r"layers\.(\d+)\.ffn\.norm_up_gate.w3.scale": r"layers.\1.ffn.w3.scale",  # noqa: E501
         # Project weight
         r"layers\.(\d+)\.ffn\.routed_gate\.proj_weight": r"layers.\1.ffn.gate.weight",  # noqa: E501
+        r"layers\.(\d+)\.ffn\.routed_gate\.bias": r"layers.\1.ffn.gate.bias",  # noqa: E501
         # Expert weight
         r"layers\.(\d+)\.ffn\.up_gate.experts_w1\.(\d+)\.weight": r"layers.\1.ffn.experts.\2.w1.weight",  # noqa: E501
         r"layers\.(\d+)\.ffn\.up_gate.experts_w1\.(\d+)\.scale": r"layers.\1.ffn.experts.\2.w1.scale",  # noqa: E501
@@ -91,7 +94,7 @@ def main():
     torch.set_default_device("cuda")
     torch.set_default_dtype(torch.bfloat16)
     torch.manual_seed(0)
-    test_e2e_forward_pass("configs/config_16B_v3.1.json")
+    test_e2e_forward_pass("configs/config_671B_layer2_device1.json")
 
 
 if __name__ == "__main__":
