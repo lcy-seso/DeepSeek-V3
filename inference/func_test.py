@@ -37,20 +37,20 @@ def convert_state_dict(tilert_state_dict: dict) -> dict:
         r"layers\.(\d+)\.ffn\.norm_up_gate.w3.scale": r"layers.\1.ffn.w3.scale",  # noqa: E501
         # Project weight
         r"layers\.(\d+)\.ffn\.rmsnorm_expert\.proj_weight": r"layers.\1.ffn.gate.weight",  # noqa: E501
-        r"layers\.(\d+)\.ffn\.routed_gate\.bias": r"layers.\1.ffn.gate.bias",  # noqa: E501
+        r"layers\.(\d+)\.ffn\.routed_up_gate_silu\.route_gate\.bias": r"layers.\1.ffn.gate.bias",  # noqa: E501
         # Expert weight
-        r"layers\.(\d+)\.ffn\.up_gate.experts_w1\.(\d+)\.weight": r"layers.\1.ffn.experts.\2.w1.weight",  # noqa: E501
-        r"layers\.(\d+)\.ffn\.up_gate.experts_w1\.(\d+)\.scale": r"layers.\1.ffn.experts.\2.w1.scale",  # noqa: E501
+        r"layers\.(\d+)\.ffn\.routed_up_gate_silu\.up_gate_silu\.experts_w1\.(\d+)\.weight": r"layers.\1.ffn.experts.\2.w1.weight",  # noqa: E501
+        r"layers\.(\d+)\.ffn\.routed_up_gate_silu\.up_gate_silu\.experts_w1\.(\d+)\.scale": r"layers.\1.ffn.experts.\2.w1.scale",  # noqa: E501
         r"layers\.(\d+)\.ffn\.down.experts_w2\.(\d+)\.weight": r"layers.\1.ffn.experts.\2.w2.weight",  # noqa: E501
         r"layers\.(\d+)\.ffn\.down.experts_w2\.(\d+)\.scale": r"layers.\1.ffn.experts.\2.w2.scale",  # noqa: E501
-        r"layers\.(\d+)\.ffn\.up_gate.experts_w3\.(\d+)\.weight": r"layers.\1.ffn.experts.\2.w3.weight",  # noqa: E501
-        r"layers\.(\d+)\.ffn\.up_gate.experts_w3\.(\d+)\.scale": r"layers.\1.ffn.experts.\2.w3.scale",  # noqa: E501
-        r"layers\.(\d+)\.ffn\.up_gate.shared_experts_w1.weight": r"layers.\1.ffn.shared_experts.w1.weight",  # noqa: E501
-        r"layers\.(\d+)\.ffn\.up_gate.shared_experts_w1.scale": r"layers.\1.ffn.shared_experts.w1.scale",  # noqa: E501
+        r"layers\.(\d+)\.ffn\.routed_up_gate_silu\.up_gate_silu\.experts_w3\.(\d+)\.weight": r"layers.\1.ffn.experts.\2.w3.weight",  # noqa: E501
+        r"layers\.(\d+)\.ffn\.routed_up_gate_silu\.up_gate_silu\.experts_w3\.(\d+)\.scale": r"layers.\1.ffn.experts.\2.w3.scale",  # noqa: E501
+        r"layers\.(\d+)\.ffn\.routed_up_gate_silu\.up_gate_silu\.shared_experts_w1.weight": r"layers.\1.ffn.shared_experts.w1.weight",  # noqa: E501
+        r"layers\.(\d+)\.ffn\.routed_up_gate_silu\.up_gate_silu\.shared_experts_w1.scale": r"layers.\1.ffn.shared_experts.w1.scale",  # noqa: E501
         r"layers\.(\d+)\.ffn\.down.shared_experts_w2.weight": r"layers.\1.ffn.shared_experts.w2.weight",  # noqa: E501
         r"layers\.(\d+)\.ffn\.down.shared_experts_w2.scale": r"layers.\1.ffn.shared_experts.w2.scale",  # noqa: E501
-        r"layers\.(\d+)\.ffn\.up_gate.shared_experts_w3.weight": r"layers.\1.ffn.shared_experts.w3.weight",  # noqa: E501
-        r"layers\.(\d+)\.ffn\.up_gate.shared_experts_w3.scale": r"layers.\1.ffn.shared_experts.w3.scale",  # noqa: E501
+        r"layers\.(\d+)\.ffn\.routed_up_gate_silu\.up_gate_silu\.shared_experts_w3.weight": r"layers.\1.ffn.shared_experts.w3.weight",  # noqa: E501
+        r"layers\.(\d+)\.ffn\.routed_up_gate_silu\.up_gate_silu\.shared_experts_w3.scale": r"layers.\1.ffn.shared_experts.w3.scale",  # noqa: E501
     }
 
     state_dict = {}
