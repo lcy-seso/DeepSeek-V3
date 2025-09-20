@@ -51,6 +51,32 @@ def convert_state_dict(tilert_state_dict: dict) -> dict:
         r"layers\.(\d+)\.ffn\.down.shared_experts_w2.scale": r"layers.\1.ffn.shared_experts.w2.scale",  # noqa: E501
         r"layers\.(\d+)\.ffn\.routed_up_gate_silu\.up_gate_silu\.shared_experts_w3.weight": r"layers.\1.ffn.shared_experts.w3.weight",  # noqa: E501
         r"layers\.(\d+)\.ffn\.routed_up_gate_silu\.up_gate_silu\.shared_experts_w3.scale": r"layers.\1.ffn.shared_experts.w3.scale",  # noqa: E501
+
+        # norm attn
+        r"layers\.(\d+)\.attn\.rmsnorm_proj_qkvwa_rope\.wq_a\.weight": r"layers.\1.attn.wq_a.weight",
+        r"layers\.(\d+)\.attn\.rmsnorm_proj_qkvwa_rope\.wq_a\.scale": r"layers.\1.attn.wq_a.scale", 
+        r"layers\.(\d+)\.attn\.rmsnorm_proj_qkvwa_rope\.wkv_a\.weight": r"layers.\1.attn.wkv_a.weight",
+        r"layers\.(\d+)\.attn\.rmsnorm_proj_qkvwa_rope\.wkv_a\.scale": r"layers.\1.attn.wkv_a.scale",
+        # r"layers\.(\d+)\.attn\.attn_norm\.weight": r"layers.\1.attn_norm.weight",
+        # r"layers\.(\d+)\.attn\.attn_norm\.bias": r"layers.\1.attn_norm.bias",
+        r"layers\.(\d+)\.attn\.rmsnorm_proj_qkvwa_rope\.attn_norm\.weight": r"layers.\1.attn_norm.weight",
+        r"layers\.(\d+)\.attn\.rmsnorm_proj_qkvwa_rope\.attn_norm\.bias": r"layers.\1.attn_norm.bias",
+        # op2
+        r"layers\.(\d+)\.attn\.rmsnorm_proj_qwb_rope\.wq_b\.weight": r"layers.\1.attn.wq_b.weight",
+        r"layers\.(\d+)\.attn\.rmsnorm_proj_qwb_rope\.wq_b\.scale": r"layers.\1.attn.wq_b.scale",
+        r"layers\.(\d+)\.attn\.rmsnorm_proj_qwb_rope\.q_norm\.weight": r"layers.\1.attn.q_norm.weight",
+        r"layers\.(\d+)\.attn\.rmsnorm_proj_qwb_rope\.q_norm\.bias": r"layers.\1.attn.q_norm.bias",
+
+        # op3
+        r"layers\.(\d+)\.attn\.proj_qwb\.wkv_b\.weight": r"layers.\1.attn.wkv_b.weight",
+        r"layers\.(\d+)\.attn\.proj_qwb\.wkv_b\.scale": r"layers.\1.attn.wkv_b.scale", 
+
+         # op4
+        r"layers\.(\d+)\.attn\.kv_rmsnorm\.kv_norm\.weight": r"layers.\1.attn.kv_norm.weight",
+        r"layers\.(\d+)\.attn\.kv_rmsnorm\.kv_norm\.bias": r"layers.\1.attn.kv_norm.bias", 
+        # op7
+        r"layers\.(\d+)\.attn\.unproj_o_allreduce\.wo\.weight": r"layers.\1.attn.wo.weight",
+        r"layers\.(\d+)\.attn\.unproj_o_allreduce\.wo\.scale": r"layers.\1.attn.wo.scale", 
     }
 
     state_dict = {}
