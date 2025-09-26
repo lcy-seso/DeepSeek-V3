@@ -24,9 +24,10 @@ def convert_state_dict(tilert_state_dict: dict) -> dict:
     """
     key_casting_maps = {
         # RMSNorm weight
-        r"layers\.(\d+)\.ffn\.norm\.weight": r"layers.\1.ffn_norm.weight",
-        r"layers\.(\d+)\.ffn\.norm_up_gate.norm_weight": r"layers.\1.ffn_norm.weight",  # noqa: E501
-        r"layers\.(\d+)\.ffn\.route_proj\.norm_weight": r"layers.\1.ffn_norm.weight",  # noqa: E501
+        # 不需要因为order一样
+        # r"layers\.(\d+)\.ffn\.norm\.weight": r"layers.\1.ffn_norm.weight",
+        r"layers\.(\d+)\.ffn\.norm_up_gate\.norm_weight": r"layers.\1.ffn_norm.weight",  # noqa: E501
+        # r"layers\.(\d+)\.ffn\.route_proj\.norm_weight": r"layers.\1.ffn_norm.weight",  # noqa: E501
         r"layers\.(\d+)\.ffn\.rmsnorm_expert\.norm_weight": r"layers.\1.ffn_norm.weight",  # noqa: E501
         # MLP weight
         r"layers\.(\d+)\.ffn\.norm_up_gate.w1.weight": r"layers.\1.ffn.w1.weight",  # noqa: E501
@@ -52,28 +53,22 @@ def convert_state_dict(tilert_state_dict: dict) -> dict:
         r"layers\.(\d+)\.ffn\.routed_up_gate_silu\.up_gate_silu\.shared_experts_w3.weight": r"layers.\1.ffn.shared_experts.w3.weight",  # noqa: E501
         r"layers\.(\d+)\.ffn\.routed_up_gate_silu\.up_gate_silu\.shared_experts_w3.scale": r"layers.\1.ffn.shared_experts.w3.scale",  # noqa: E501
 
+
         # norm attn
         r"layers\.(\d+)\.attn\.rmsnorm_proj_qkvwa_rope\.wq_a\.weight": r"layers.\1.attn.wq_a.weight",
         r"layers\.(\d+)\.attn\.rmsnorm_proj_qkvwa_rope\.wq_a\.scale": r"layers.\1.attn.wq_a.scale", 
         r"layers\.(\d+)\.attn\.rmsnorm_proj_qkvwa_rope\.wkv_a\.weight": r"layers.\1.attn.wkv_a.weight",
         r"layers\.(\d+)\.attn\.rmsnorm_proj_qkvwa_rope\.wkv_a\.scale": r"layers.\1.attn.wkv_a.scale",
-        # r"layers\.(\d+)\.attn\.attn_norm\.weight": r"layers.\1.attn_norm.weight",
-        # r"layers\.(\d+)\.attn\.attn_norm\.bias": r"layers.\1.attn_norm.bias",
         r"layers\.(\d+)\.attn\.rmsnorm_proj_qkvwa_rope\.attn_norm\.weight": r"layers.\1.attn_norm.weight",
-        r"layers\.(\d+)\.attn\.rmsnorm_proj_qkvwa_rope\.attn_norm\.bias": r"layers.\1.attn_norm.bias",
         # op2
         r"layers\.(\d+)\.attn\.rmsnorm_proj_qwb_rope\.wq_b\.weight": r"layers.\1.attn.wq_b.weight",
         r"layers\.(\d+)\.attn\.rmsnorm_proj_qwb_rope\.wq_b\.scale": r"layers.\1.attn.wq_b.scale",
         r"layers\.(\d+)\.attn\.rmsnorm_proj_qwb_rope\.q_norm\.weight": r"layers.\1.attn.q_norm.weight",
-        r"layers\.(\d+)\.attn\.rmsnorm_proj_qwb_rope\.q_norm\.bias": r"layers.\1.attn.q_norm.bias",
-
         # op3
         r"layers\.(\d+)\.attn\.proj_qwb\.wkv_b\.weight": r"layers.\1.attn.wkv_b.weight",
         r"layers\.(\d+)\.attn\.proj_qwb\.wkv_b\.scale": r"layers.\1.attn.wkv_b.scale", 
-
          # op4
-        r"layers\.(\d+)\.attn\.kv_rmsnorm\.kv_norm\.weight": r"layers.\1.attn.kv_norm.weight",
-        r"layers\.(\d+)\.attn\.kv_rmsnorm\.kv_norm\.bias": r"layers.\1.attn.kv_norm.bias", 
+        r"layers\.(\d+)\.attn\.kv_rmsnorm\.kv_norm_weight": r"layers.\1.attn.kv_norm.weight",
         # op7
         r"layers\.(\d+)\.attn\.unproj_o_allreduce\.wo\.weight": r"layers.\1.attn.wo.weight",
         r"layers\.(\d+)\.attn\.unproj_o_allreduce\.wo\.scale": r"layers.\1.attn.wo.scale", 
@@ -105,6 +100,10 @@ def test_e2e_forward_pass(model_config):
     tilert_model = TilertDeepSeekV3Transformer(model_args)
     origin_model = DeepSeekV3Transformer(model_args)
     origin_model.load_state_dict(convert_state_dict(tilert_model.state_dict()))
+    keys = [k for k in origin_model.state_dict().keys() if "ffn_norm.weight" in k]
+    print("\n".join(keys))
+    # print(tilert_model.state_dict().keys())
+    # print(origin_model.state_dict())
 
     ref_output = origin_model(x, start_pos=127)
     tilert_output = tilert_model(x, start_pos=127)
@@ -112,6 +111,12 @@ def test_e2e_forward_pass(model_config):
     rel_err = abs_err / torch.abs(ref_output)
     print(f"Rel err: max-{rel_err.max():.3f}/mean-{rel_err.mean():.3f}")
     print(f"Abs err: max-{abs_err.max():.3f}/mean-{abs_err.mean():.3f}")
+    cos_sim = torch.nn.functional.cosine_similarity(
+        ref_output.flatten(), 
+        tilert_output.flatten(), 
+        dim=0
+    )
+    print(f"Cosine similarity: {cos_sim.item():.6f}")
 
 
 def main():
