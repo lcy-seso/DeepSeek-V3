@@ -68,7 +68,7 @@ def convert_state_dict(tilert_state_dict: dict) -> dict:
         r"layers\.(\d+)\.attn\.proj_qwb\.wkv_b\.weight": r"layers.\1.attn.wkv_b.weight",
         r"layers\.(\d+)\.attn\.proj_qwb\.wkv_b\.scale": r"layers.\1.attn.wkv_b.scale", 
          # op4
-        r"layers\.(\d+)\.attn\.kv_rmsnorm\.kv_norm_weight": r"layers.\1.attn.kv_norm.weight",
+        r"layers\.(\d+)\.attn\.kv_rmsnorm\.kv_norm\.weight": r"layers.\1.attn.kv_norm.weight",
         # op7
         r"layers\.(\d+)\.attn\.unproj_o_allreduce\.wo\.weight": r"layers.\1.attn.wo.weight",
         r"layers\.(\d+)\.attn\.unproj_o_allreduce\.wo\.scale": r"layers.\1.attn.wo.scale", 
