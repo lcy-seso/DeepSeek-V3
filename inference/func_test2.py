@@ -25,7 +25,7 @@ def setup():
 # output state_dict对齐target state_dict，
 # 如果按照正则匹配，匹配完后key 在target state_dict中，则1.将origin state_dict key的weight赋值给对应 weight
 # 如果正则不匹配，又在target state_dict中，则将origin state_dict的value赋值给target state_dict
-def convert_state_dict_origin2tilert(origin_state_dict: dict, target_state_dict: dict, layer_index:int) -> dict:
+def convert_state_dict_origin2tilert(origin_state_dict: dict, target_state_dict: dict, dense_layer_index:int, layer_index:int) -> dict:
     """
     Convert the state dict of the Tilert DeepSeekV3 model to the state dict of the DeepSeekV3 model.
     """
@@ -137,6 +137,7 @@ def convert_state_dict_origin2tilert(origin_state_dict: dict, target_state_dict:
     set_target_layer1_keys = set()
     for k in target_state_dict.keys():
         k = re.sub(r"layers\.1", rf"layers.{layer_index}", k)
+        k = re.sub(r"layers\.0", rf"layers.{dense_layer_index}", k)
         set_target_keys.add(k)
     #     if k.startswith("layers.1"):
     #         set_target_layer1_keys.add(k)
@@ -180,6 +181,7 @@ def convert_state_dict_origin2tilert(origin_state_dict: dict, target_state_dict:
     assert count_match_in + count_nomatch_in == len(set_target_keys)
     state_dict_return = {}
     for k, v in state_dict.items():
+        k = re.sub(rf"layers\.{dense_layer_index}", r"layers.0", k)
         k = re.sub(rf"layers\.{layer_index}", r"layers.1", k)
         state_dict_return[k] = v
     # for k in state_dict_return.keys():
@@ -441,9 +443,10 @@ def test_e2e_forward_pass(model_config):
     # for key, value in state_dicts[0].items():
     #     print(value.shape)
     result = {}
-    for layer_index in range(3,58):
+    dense_layer_index = 2
+    for layer_index in range(3,61):
         # origin2tilert_state_dict = convert_state_dict_origin2tilert(state_dicts[0], tilert_model.state_dict())
-        origin2tilert_state_dict = convert_state_dict_origin2tilert(state_dicts[0], tilert_model.state_dict(), layer_index)
+        origin2tilert_state_dict = convert_state_dict_origin2tilert(state_dicts[0], tilert_model.state_dict(), dense_layer_index, layer_index)
         # 简单统计 tilert_model 的 state_dict 键值对数量
         tilert_state_dict = tilert_model.state_dict()
         #print(f'Tilert model state_dict 键值对数量: {len(tilert_state_dict)}')
