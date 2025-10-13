@@ -97,7 +97,7 @@ def test_e2e_forward_pass(model_config):
 
     x = torch.randint(0, model_args.vocab_size, (1, 1))
 
-    tilert_model = TilertDeepSeekV3Transformer(model_args)
+    tilert_model = TilertDeepSeekV3Transformer(model_args, enable_tilert=False)
     origin_model = DeepSeekV3Transformer(model_args)
     origin_model.load_state_dict(convert_state_dict(tilert_model.state_dict()))
     keys = [k for k in origin_model.state_dict().keys() if "ffn_norm.weight" in k]
@@ -109,8 +109,10 @@ def test_e2e_forward_pass(model_config):
     tilert_output = tilert_model(x, start_pos=127)
     abs_err = torch.abs(ref_output - tilert_output)
     rel_err = abs_err / torch.abs(ref_output)
-    print(f"Rel err: max-{rel_err.max():.3f}/mean-{rel_err.mean():.3f}")
-    print(f"Abs err: max-{abs_err.max():.3f}/mean-{abs_err.mean():.3f}")
+    print(f"Rel err: max-{rel_err.max():.6f}/mean-{rel_err.mean():.6f}")
+    print(f"Abs err: max-{abs_err.max():.6f}/mean-{abs_err.mean():.6f}")
+    print("Ref:", ref_output)
+    print("Tilert:", tilert_output)
     cos_sim = torch.nn.functional.cosine_similarity(
         ref_output.flatten(), 
         tilert_output.flatten(), 

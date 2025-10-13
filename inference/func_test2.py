@@ -430,7 +430,8 @@ def test_e2e_forward_pass(model_config):
         model_config = json.load(f_json)
     model_args = ModelArgs(**model_config)
     x = torch.randint(0, model_args.vocab_size, (1, 1))
-    tilert_model = TilertDeepSeekV3Transformer(model_args)
+    tilert_model = TilertDeepSeekV3Transformer(model_args, enable_tilert=True)
+    golden_model = TilertDeepSeekV3Transformer(model_args, enable_tilert=False)
     origin_model = DeepSeekV3Transformer(model_args)
 
     model_dir = "/data2/shared/deepseekv3.1"
@@ -440,44 +441,57 @@ def test_e2e_forward_pass(model_config):
     # for key, value in state_dicts[0].items():
     #     print(value.shape)
     result = {}
-    for layer_index in range(3,4):
+    for layer_index in range(3,58):
         # origin2tilert_state_dict = convert_state_dict_origin2tilert(state_dicts[0], tilert_model.state_dict())
         origin2tilert_state_dict = convert_state_dict_origin2tilert(state_dicts[0], tilert_model.state_dict(), layer_index)
         # 简单统计 tilert_model 的 state_dict 键值对数量
         tilert_state_dict = tilert_model.state_dict()
-        print(f'Tilert model state_dict 键值对数量: {len(tilert_state_dict)}')
-        print(f'Origin model state_dict 键值对数量: {len(origin_model.state_dict())}')
-        print(f'Origin2tilert model state_dict 键值对数量: {len(origin2tilert_state_dict)}')
+        #print(f'Tilert model state_dict 键值对数量: {len(tilert_state_dict)}')
+        #print(f'Origin model state_dict 键值对数量: {len(origin_model.state_dict())}')
+        #print(f'Origin2tilert model state_dict 键值对数量: {len(origin2tilert_state_dict)}')
         
         # compare_state_dicts(origin2tilert_state_dict, tilert_model.state_dict(),check_values=False)
         # shape 转换一下
-        for k in tilert_state_dict.keys():
-            if "proj_qwb.wkv_b.weight" in k:
-                print("proj_qwb.wkv_b.weight", tilert_state_dict[k].shape)
+        #for k in tilert_state_dict.keys():
+        #    if "proj_qwb.wkv_b.weight" in k:
+        #        print("proj_qwb.wkv_b.weight", tilert_state_dict[k].shape)
         origin2tilert_state_dict_device8 = state_dict_weight_exchange(origin2tilert_state_dict, tilert_model.state_dict())
         for i in range(8):
             compare_state_dicts(origin2tilert_state_dict_device8[i], tilert_model.state_dict(),check_values=False)
         
         tilert_model.load_state_dict(origin2tilert_state_dict_device8[0])
+        golden_model.load_state_dict(tilert_model.state_dict())
         origin_model.load_state_dict(convert_state_dict_tilert2origin(tilert_model.state_dict())) 
         # origin_model.load_state_dict(convert_state_dict_tilert2origin(origin2tilert_state_dict_device8[0]))
         ref_output = origin_model(x, start_pos=127)
         tilert_output = tilert_model(x, start_pos=127)
+        golden_output = golden_model(x, start_pos=127)
         ref_output = ref_output.to(torch.float32)
         tilert_output = tilert_output.to(torch.float32)
+        golden_output = golden_output.to(torch.float32)
         abs_err = torch.abs(ref_output - tilert_output)
         rel_err = abs_err / torch.abs(ref_output)
-        print(f"Rel err: max-{rel_err.max():.3f}/mean-{rel_err.mean():.3f}")
-        print(f"Abs err: max-{abs_err.max():.3f}/mean-{abs_err.mean():.3f}")
+        #print(f"Rel err: max-{rel_err.max():.3f}/mean-{rel_err.mean():.3f}")
+        #print(f"Abs err: max-{abs_err.max():.3f}/mean-{abs_err.mean():.3f}")
         cos_sim = torch.nn.functional.cosine_similarity(
             ref_output.flatten(), 
             tilert_output.flatten(), 
             dim=0
         )
-        print(f"Cosine similarity: {cos_sim.item():.6f}")
-        p1_error = (torch.abs(ref_output.flatten() - tilert_output.flatten()) / (1 + torch.abs(ref_output.flatten()))).to("cpu")
-        print(f"P1: max-{p1_error.max()}, min-{p1_error.min()}, mean-{p1_error.mean()}")
-        result[layer_index] = [cos_sim.item(), p1_error.max().item(), p1_error.min().item(), p1_error.mean().item()]
+        cos_sim_golden = torch.nn.functional.cosine_similarity(
+            ref_output.flatten(), 
+            golden_output.flatten(), 
+            dim=0
+        )
+        cos_sim_golden_trt = torch.nn.functional.cosine_similarity(
+            golden_output.flatten(), 
+            tilert_output.flatten(), 
+            dim=0
+        )
+        print(f"Cosine similarity: {cos_sim.item():.6f} {cos_sim_golden.item():.6f} {cos_sim_golden_trt.item():.6f}")
+        #p1_error = (torch.abs(ref_output.flatten() - tilert_output.flatten()) / (1 + torch.abs(ref_output.flatten()))).to("cpu")
+        #print(f"P1: max-{p1_error.max()}, min-{p1_error.min()}, mean-{p1_error.mean()}")
+        result[layer_index] = [cos_sim.item(), cos_sim_golden.item(), cos_sim_golden_trt.item()]# p1_error.max().item(), p1_error.min().item(), p1_error.mean().item()]
     print(result)
 def main():
     torch.set_default_device("cuda")
