@@ -1,20 +1,26 @@
 import pytest
 import torch
+import torch.distributed as dist
 import re
+import os
 
 import json
 from model import ModelArgs
 
+import pdb
+
 from model import Transformer as DeepSeekV3Transformer
-from tilert.models.deepseek_v3.model import (
-    Transformer as TilertDeepSeekV3Transformer,
-)
+from tilert.models.deepseek_v3.model import Transformer as TilertDeepSeekV3Transformer
 
 
 @pytest.fixture(autouse=True)
 def setup():
+    if "LOCAL_RANK" in os.environ:
+        local_rank = int(os.environ["LOCAL_RANK"])
+        torch.set_default_device(f"cuda:{local_rank}")
+    else:
+        torch.set_default_device("cuda")
     torch.set_default_dtype(torch.bfloat16)
-    torch.set_default_device("cuda")
     torch.manual_seed(0)
 
 
@@ -86,39 +92,84 @@ def convert_state_dict(tilert_state_dict: dict) -> dict:
 
 @pytest.mark.parametrize("model_config", [])
 def test_e2e_forward_pass(model_config):
+    world_size = dist.get_world_size() if dist.is_initialized() else 1
+    rank = dist.get_rank() if dist.is_initialized() else 0
+
     with open(model_config, "r", encoding="utf-8") as f_json:
         model_config = json.load(f_json)
+
     model_args = ModelArgs(**model_config)
 
-    x = torch.randint(0, model_args.vocab_size, (1, 1))
-
+    # Initialize models with adjusted config
     tilert_model = TilertDeepSeekV3Transformer(model_args, enable_tilert=False)
     origin_model = DeepSeekV3Transformer(model_args)
-    origin_model.load_state_dict(convert_state_dict(tilert_model.state_dict()))
-    keys = [k for k in origin_model.state_dict().keys() if "ffn_norm.weight" in k]
-    print("\n".join(keys))
+
+    if world_size > 1:
+        dist.barrier()
+
+    # origin_model.load_state_dict(convert_state_dict(tilert_model.state_dict()))
+
+    # keys = [k for k in origin_model.state_dict().keys() if "ffn_norm.weight" in k]
+    # print("\n".join(keys))
+
     # print(tilert_model.state_dict().keys())
     # print(origin_model.state_dict())
 
+    x = torch.randint(0, model_args.vocab_size, (1, 1))
     ref_output = origin_model(x, start_pos=127)
-    tilert_output = tilert_model(x, start_pos=127)
-    abs_err = torch.abs(ref_output - tilert_output)
-    rel_err = abs_err / torch.abs(ref_output)
-    print(f"Rel err: max-{rel_err.max():.6f}/mean-{rel_err.mean():.6f}")
-    print(f"Abs err: max-{abs_err.max():.6f}/mean-{abs_err.mean():.6f}")
-    print("Ref:", ref_output)
-    print("Tilert:", tilert_output)
-    cos_sim = torch.nn.functional.cosine_similarity(
-        ref_output.flatten(), tilert_output.flatten(), dim=0
-    )
-    print(f"Cosine similarity: {cos_sim.item():.6f}")
+    # tilert_output = tilert_model(x, start_pos=127)
+
+    if rank == 3:
+        print(f"rank-{rank}, x:", x)
+        print(f"rank-{rank}, Ref:", ref_output)
+
+    # abs_err = torch.abs(ref_output - tilert_output)
+    # rel_err = abs_err / torch.abs(ref_output)
+    # print(f"Rel err: max-{rel_err.max():.6f}/mean-{rel_err.mean():.6f}")
+    # print(f"Abs err: max-{abs_err.max():.6f}/mean-{abs_err.mean():.6f}")
+
+    # print("Tilert:", tilert_output)
+    # cos_sim = torch.nn.functional.cosine_similarity(
+    #     ref_output.flatten(), tilert_output.flatten(), dim=0
+    # )
+    # print(f"Cosine similarity: {cos_sim.item():.6f}")
+
+
+def init_distributed():
+    """Initialize distributed training"""
+    if "LOCAL_RANK" in os.environ:
+        local_rank = int(os.environ["LOCAL_RANK"])
+        world_rank = int(os.environ["RANK"])
+        world_size = int(os.environ["WORLD_SIZE"])
+    else:
+        local_rank = 0
+        world_rank = 0
+        world_size = 1
+
+    torch.cuda.set_device(local_rank)
+
+    if world_size > 1:
+        dist.init_process_group(
+            backend="nccl",
+            world_size=world_size,
+            rank=world_rank,
+            init_method="env://",
+            device_id=local_rank,
+        )
+    return local_rank, world_rank, world_size
 
 
 def main():
-    torch.set_default_device("cuda")
+    local_rank, world_rank, world_size = init_distributed()
+
+    torch.set_default_device(f"cuda:{local_rank}")
     torch.set_default_dtype(torch.bfloat16)
     torch.manual_seed(0)
+
     test_e2e_forward_pass("configs/config_671B_layer2_device1.json")
+
+    if world_size > 1:
+        dist.destroy_process_group()
 
 
 if __name__ == "__main__":
