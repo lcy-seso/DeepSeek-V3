@@ -26,7 +26,8 @@ def setup():
 
 def convert_state_dict(tilert_state_dict: dict) -> dict:
     """
-    Convert the state dict of the Tilert DeepSeekV3 model to the state dict of the DeepSeekV3 model.
+    Convert the state dict of the tilert's DeepSeekV3 model to the state dict of
+    the original DeepSeekV3 model.
     """
     key_casting_maps = {
         # RMSNorm weight
